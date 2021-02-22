@@ -16,7 +16,7 @@ import java.util.concurrent.CountDownLatch;
  * 如果已经拿到了锁直接返回获取锁成功，否则进入阻塞等待状态
  * <p>
  * 实现步骤：
- * 前提：需要保存获取到锁的线程Thread和重入的次数reetrantCount
+ * 前提：需要全局保存获取到锁的线程Thread和重入的次数reetrantCount
  * 获取锁：
  * 1. 请求获取锁，先判断当前reetrantCount是否等于0，如果为0，表示没有线程获取锁，则去抢占锁
  * 2. 如果大于0，则表示已经有锁存在，则判断拿到锁的线程是不是当前请求的线程，如果是当前请求线程则直接获取锁，reentrantCount+1
@@ -41,22 +41,27 @@ public class ZkLockReentrantMutex implements DistributeLock {
 
     public ZkLockReentrantMutex(String lockPath, ZkClient zkClient) {
         this.lockPath = lockPath;
-        this.parentPath = lockPath.substring(0, lockPath.lastIndexOf("/"));
+        String parentPathTmp = lockPath.substring(0, lockPath.lastIndexOf("/"));
+        if (parentPathTmp == null || parentPathTmp == "") {
+            this.parentPath = "/";
+        } else {
+            this.parentPath = parentPathTmp;
+        }
         this.zkClient = zkClient;
         currentThread = Thread.currentThread();
-        firstCreateParentPath(lockPath);
+        beforeCreateParentPath(lockPath);
     }
 
     @Override
     public void lock() throws Exception {
         if (reetrantCount == 0) {//没有线程获取到锁
             // 进入抢锁
-            if (tryLock(1)) {
+            if (tryLock()) {
                 threadOfLock = currentThread;
                 reetrantCount++;
-                System.out.println("===第一次拿到锁线程="+threadOfLock.getName());
+                System.out.println("===第一次拿到锁线程=" + threadOfLock.getName());
             } else {
-                System.out.println("####wait[1]等待释放锁"+currentThread.getName());
+                System.out.println("####wait[1]等待释放锁" + currentThread.getName());
                 waitForLock();
                 lock();
             }
@@ -66,11 +71,13 @@ public class ZkLockReentrantMutex implements DistributeLock {
                 reetrantCount++;
                 System.out.println("$$$再次拿到锁-------");
             } else {
-                // 进入抢锁
-                System.out.println("####wait[2]等待释放锁"+currentThread.getName());
-                if (tryLock(2)) {
+                // 当前线程不是获取锁的线程，理论是进入等待
+                if (tryLock()) {
+                    System.out.println("===新线程抢锁成功=="+currentThread.getName());
                     threadOfLock = currentThread;
+                    reetrantCount++;
                 } else {
+                    System.out.println("####wait[2]等待释放锁" + currentThread.getName());
                     waitForLock();
                     lock();
                 }
@@ -78,10 +85,9 @@ public class ZkLockReentrantMutex implements DistributeLock {
         }
     }
 
-    private boolean tryLock(int index) {
-        if (currentNodeFullPath==null) {
+    private boolean tryLock() {
+        if (currentNodeFullPath == null) {
             currentNodeFullPath = zkClient.createEphemeralSequential(lockPath, "k2");
-            System.out.println(index+"********线程" + currentThread.getName() + "创建子节点：" + currentNodeFullPath);
         }
         List<String> childNodes = zkClient.getChildren(parentPath);
         Collections.sort(childNodes);
@@ -128,14 +134,13 @@ public class ZkLockReentrantMutex implements DistributeLock {
         try {
             if (currentThread == threadOfLock) {
                 reetrantCount--;
-                System.out.println("=====释放锁减1");
+                System.out.println("=====释放锁-----减1");
                 if (reetrantCount == 0) {
-                    System.out.println("^^^^开始释放锁, path=" + currentNodeFullPath);
+                    System.out.println("^^^^开始删除锁节点, path=" + currentNodeFullPath);
                     zkClient.delete(currentNodeFullPath);
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
             System.err.println("删除节点失败,err:" + e.getMessage());
         }
     }
@@ -147,14 +152,9 @@ public class ZkLockReentrantMutex implements DistributeLock {
         }
     }
 
-    private void firstCreateParentPath(String lockPath) {
-        String parentPath = lockPath.substring(0, lockPath.lastIndexOf("/"));
-
-        if (!parentPath.equals("/")) {
-            boolean exists = zkClient.exists(parentPath);
-            if (!exists) {
-                zkClient.createPersistent(parentPath, true);
-            }
+    private void beforeCreateParentPath(String lockPath) {
+        if (!parentPath.equals("/") && !zkClient.exists(parentPath)) {
+            zkClient.createPersistent(parentPath, true);
         }
     }
 

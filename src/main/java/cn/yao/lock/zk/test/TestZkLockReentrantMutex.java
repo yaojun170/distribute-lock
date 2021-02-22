@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @Date 2021-02-20
  */
 public class TestZkLockReentrantMutex {
-    static String lockPath = "/distribute-lock-reentrant/zk-lock-mutexUpdate-";
+    static String lockPath = "/d-lock-reentrant2/zk-lock-reetrant-";
 
     static int count=0;
     static AtomicInteger ai = new AtomicInteger(0);
@@ -25,7 +25,7 @@ public class TestZkLockReentrantMutex {
         long s1 = System.currentTimeMillis();
         System.out.println();
 
-        int threadCount = 2;
+        int threadCount = 20;
         CountDownLatch latch = new CountDownLatch(threadCount);
 
         for (int i = 0; i < threadCount; i++) {
@@ -35,7 +35,7 @@ public class TestZkLockReentrantMutex {
                 try {
                     lock.lock();
                     System.out.println("====[开始执行业务逻辑]===="+Thread.currentThread().getName());
-                    Thread.sleep(new Random().nextInt(200)+100);
+//                    Thread.sleep(new Random().nextInt(200)+100);
                     biz();
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -63,13 +63,13 @@ public class TestZkLockReentrantMutex {
         ZkLockReentrantMutex lock = new ZkLockReentrantMutex(lockPath, zkClient);
         try {
             lock.lock();
-            System.out.println("====[开始执行业务逻辑]22222===="+Thread.currentThread().getName());
-            for (int j = 0; j < 10000; j++) {
+            System.out.println("====[开始执行业务逻辑]22222$$$$$$===="+Thread.currentThread().getName());
+            for (int j = 0; j < 1; j++) {
                 count = count+1;
                 ai.incrementAndGet();
             }
 
-           Thread.sleep(new Random().nextInt(1000)+200);
+//           Thread.sleep(new Random().nextInt(1000)+100);
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
