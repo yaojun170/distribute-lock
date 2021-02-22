@@ -84,10 +84,10 @@ methodB(){
 // 解决办法：锁可重入，对于同一线程，可以再次获取锁
 ```
 
-实现原理：  
+**实现原理：**  
 可重入锁需要维护每次锁的线程信息，每当有获取锁请求时先判断请求线程是不是已经拿到了锁如果已经拿到了锁直接返回获取锁成功，否则进入阻塞等待状态
 
-实现步骤：  
+**实现步骤：**  
 前提：需要全局保存获取到锁的线程Thread和重入的次数reetrantCount  
 获取锁：  
 1. 请求获取锁，先判断当前reetrantCount是否等于0，如果为0，表示没有线程获取锁，则去抢占锁，抢占锁逻辑同上面排他锁，创建一个临时顺序节点
@@ -98,8 +98,10 @@ methodB(){
 1. 获取到当前线程是不是拿到锁的线程，如果是reentrantCount--
 2. 再判断reentrantCount是否为0，如果是，删除锁对应的节点
 
+参考代码：cn.yao.lock.zk.mutex.ZkLockReentantMutex
+
 #### 读写锁
-简介：
+简介：读写锁是同一时刻可以允许多个读操作访问，但是在写操作访问时，所有的后续读操作和其他写操作均会被阻塞。juc提供的读写锁实现是ReentantReadWriteLock。
 
 #### 开源实现-Curator分布式锁工具
 Curator实现了可重入锁(InterProcessMutex),也实现了不可重入锁(InterProcessSemaphoreMutex)。在可重入锁中还实现了读写锁

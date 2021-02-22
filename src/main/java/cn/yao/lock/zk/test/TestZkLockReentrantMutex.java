@@ -1,10 +1,9 @@
 package cn.yao.lock.zk.test;
 
 import cn.yao.lock.zk.common.ZkUtil;
-import cn.yao.lock.zk.mutex.ZkLockReentrantMutex;
+import cn.yao.lock.zk.mutex.ZkLockReentantMutex;
 import org.I0Itec.zkclient.ZkClient;
 
-import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -14,7 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @Date 2021-02-20
  */
 public class TestZkLockReentrantMutex {
-    static String lockPath = "/d-lock-reentrant2/zk-lock-reetrant-";
+    static String lockPath = "/d-lock-reentrant5/zk-lock-reetrant-";
 
     static int count=0;
     static AtomicInteger ai = new AtomicInteger(0);
@@ -25,13 +24,13 @@ public class TestZkLockReentrantMutex {
         long s1 = System.currentTimeMillis();
         System.out.println();
 
-        int threadCount = 20;
+        int threadCount = 10;
         CountDownLatch latch = new CountDownLatch(threadCount);
 
         for (int i = 0; i < threadCount; i++) {
             new Thread(() -> {
                 ZkClient zkClient = ZkUtil.getZkClient();
-                ZkLockReentrantMutex lock = new ZkLockReentrantMutex(lockPath, zkClient);
+                ZkLockReentantMutex lock = new ZkLockReentantMutex(lockPath, zkClient);
                 try {
                     lock.lock();
                     System.out.println("====[开始执行业务逻辑]===="+Thread.currentThread().getName());
@@ -60,7 +59,7 @@ public class TestZkLockReentrantMutex {
     private static void biz(){
         System.out.println("====[开始执行业务逻辑2]===="+Thread.currentThread().getName());
         ZkClient zkClient = ZkUtil.getZkClient();
-        ZkLockReentrantMutex lock = new ZkLockReentrantMutex(lockPath, zkClient);
+        ZkLockReentantMutex lock = new ZkLockReentantMutex(lockPath, zkClient);
         try {
             lock.lock();
             System.out.println("====[开始执行业务逻辑]22222$$$$$$===="+Thread.currentThread().getName());

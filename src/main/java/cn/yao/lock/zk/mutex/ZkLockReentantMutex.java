@@ -28,7 +28,7 @@ import java.util.concurrent.CountDownLatch;
  * @Author yaojun
  * @Date 2021-02-20
  */
-public class ZkLockReentrantMutex implements DistributeLock {
+public class ZkLockReentantMutex implements DistributeLock {
     private String lockPath;
     private String parentPath;
     private ZkClient zkClient;
@@ -39,7 +39,7 @@ public class ZkLockReentrantMutex implements DistributeLock {
     private static volatile Thread threadOfLock; //获取到锁的线程
     private static volatile int reetrantCount = 0; //线程获取锁的次数
 
-    public ZkLockReentrantMutex(String lockPath, ZkClient zkClient) {
+    public ZkLockReentantMutex(String lockPath, ZkClient zkClient) {
         this.lockPath = lockPath;
         String parentPathTmp = lockPath.substring(0, lockPath.lastIndexOf("/"));
         if (parentPathTmp == null || parentPathTmp == "") {
@@ -68,6 +68,7 @@ public class ZkLockReentrantMutex implements DistributeLock {
         } else {
             //已经有线程拿到锁，判断是不是等于当前线程
             if (currentThread == threadOfLock) {
+                //避免再次创建线程
                 reetrantCount++;
                 System.out.println("$$$再次拿到锁-------");
             } else {
@@ -88,6 +89,7 @@ public class ZkLockReentrantMutex implements DistributeLock {
     private boolean tryLock() {
         if (currentNodeFullPath == null) {
             currentNodeFullPath = zkClient.createEphemeralSequential(lockPath, "k2");
+            System.out.println("###创建节点"+currentNodeFullPath+",thread:"+currentThread.getName());
         }
         List<String> childNodes = zkClient.getChildren(parentPath);
         Collections.sort(childNodes);
@@ -135,7 +137,7 @@ public class ZkLockReentrantMutex implements DistributeLock {
             if (currentThread == threadOfLock) {
                 reetrantCount--;
                 System.out.println("=====释放锁-----减1");
-                if (reetrantCount == 0) {
+                if (reetrantCount <= 0) {
                     System.out.println("^^^^开始删除锁节点, path=" + currentNodeFullPath);
                     zkClient.delete(currentNodeFullPath);
                 }

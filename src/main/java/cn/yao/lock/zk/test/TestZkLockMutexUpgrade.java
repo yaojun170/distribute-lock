@@ -28,7 +28,7 @@ public class TestZkLockMutexUpgrade {
         long s1 = System.currentTimeMillis();
         System.out.println();
 
-        int threadCount = 50;
+        int threadCount = 10;
         CountDownLatch latch = new CountDownLatch(threadCount);
 
         for (int i = 0; i < threadCount; i++) {
