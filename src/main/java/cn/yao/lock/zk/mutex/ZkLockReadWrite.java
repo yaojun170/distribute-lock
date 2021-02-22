@@ -14,7 +14,7 @@ import java.util.concurrent.CountDownLatch;
  * @Date 2021-02-20
  */
 
-//TODO
+//TODO 不可重入，需要改造
 public class ZkLockReadWrite {
     private String lockBasePath;
     private ZkClient zkClient;

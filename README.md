@@ -105,13 +105,15 @@ methodB(){
 
 **实现：**
 定义锁：和排他锁一样，同样是通过zk上的数据节点来表示一个锁,是类似一个/lock/请求类型-序号的临时顺序节点，例如：/lock/R-000001表示一个读锁节点
-![mutex](images/readwritenode.png)
+![mutex](images/readwrite.png)
 
 获取锁：  
 1. 创建一个临时顺序节点，如果当前是读请求，那就就创建如/lock/R-的节点，如果是写请求，就创建/lock/W-的节点
 2. 创建完节点之后，获取父路径/lock节点下所有子节点，
     + 如果是读请求，判断比自己小的节点是否存在写节点,如果存在写节点，进入阻塞等待，并监听此节点，如果没有写节点，则获取锁成功，开始执行业务逻辑
     + 如果是写请求，判断当前是否是最小节点，如果是获取锁成功，如果不是，进入阻塞等待，监听上一个比自己小的节点
+   
+参考代码：cn.yao.lock.zk.mutex.ZkLockReadWrite
     
 #### 开源实现-Curator分布式锁工具
 Curator实现了可重入锁(InterProcessMutex),也实现了不可重入锁(InterProcessSemaphoreMutex)。在可重入锁中还实现了读写锁
