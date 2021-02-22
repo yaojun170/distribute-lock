@@ -130,15 +130,18 @@ try {
 }
 ```
 
-
-
+参考博客：
++ [zookeeper笔记之基于zk实现分布式锁](https://www.cnblogs.com/cc11001100/p/10269494.html)
++ [Zookeeper实现分布式锁](https://chenjiabing666.github.io/2020/04/19/Zookeeper%E5%AE%9E%E7%8E%B0%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/)
++ [基于Zookeeper的分布式锁原理及实现](https://blog.didiyun.com/index.php/2018/11/20/zookeeper/)
++ [Zookeeper进阶学习](https://zhuanlan.zhihu.com/p/348968965)
 
 
 
 
 
 ### 基于redis实现分布式锁
-
+TODO
 
 ### 总结
 + 实现方式不同：redis实现为去插入一条占位数据，而zk实现为注册一个临时节点
