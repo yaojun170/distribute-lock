@@ -141,7 +141,60 @@ try {
 
 
 ### 基于redis实现分布式锁
-演变
+核心思考：确保加锁/解锁都是原子操作，保证(加锁占位+过期时间)和删除锁(判断+删除)，以及锁的自动续期
+##### 获取锁:
+> SET lockName custom_value NX EX seconds
+
+- custom_value:当前线程唯一随机值
+- 存在问题：锁过期释放，业务没执行完，可以在获得锁的线程，开启一个定时守护子线程，每隔一段时间给锁的过期时间延长
+
+##### 释放锁：  
+通过lua脚本实现原子的比较&删除: 
+```aidl
+if redis.call("get",KEYS[1])==ARGV[1] then
+    return redis.call("del",KEYS[1]);
+else
+    return 0;
+end
+```
+解锁为什么需要用lua脚本，假设不用lua脚本：
++ T1线程获取锁，执行完逻辑，开始释放锁，先判断get(key)==v
++ 此时可能存在T1的key到期，自动释放，还没有执行del,此时T2线程获取锁，set值
++ T1执行到del(key)，把T2刚加的锁给释放，错误
++ 归结原因就是T1执行的指令不是原子性，get和del之间，T2能执行set，所以需要lua来解决
+
+#### Redisson
+```aidl
+String lockKey = "lockkey1";
+RLock rlock = redisson.getLock(lockKey);
+try {
+  rlock.lock();
+
+  //业务逻辑实现，扣减库存
+  ....
+} catch (Exception e) {
+  e.printStackTrace();
+} finally {
+  rlock.unlock();
+}
+return "end";
+```
+![](images/reddison.png)
+- 多个线程去执行lock操作，仅有一个线程能够加锁成功，其它线程循环阻塞。
+- 加锁成功，锁超时时间 默认30s ，并开启后台线程，加锁的后台会 每隔10秒 去检测线程持有的锁是否存在，还在的话，就延迟锁超时时间，重新设置为30s，即 锁延期
+- 对于原子性，Redis分布式锁底层借助Lua脚本实现锁的原子性 。锁延期是通过在底层用Lua进行延时，延时检测时间是对超时时间timeout /3
+
+采用Redisson分布式锁的问题分析 
+主从同步问题<BR/>
+当主Redis刚加锁成功，若还未将锁通过异步同步的方式同步到从Redis节点，主节点就挂了，此时会把某一台从节点作为新的主节点，但是从节点上没有锁数据，导致别的线程就可以加锁了，这样就出错了，怎么办
+1. 采用zookeeper代替
+   1. 由于zk集群的特点，是CP，而redis集群是CP
+2. 采用RedLock
+
+参考：
+[探讨redis分布锁的七种方案](https://juejin.cn/post/6936956908007850014)
+[redis分布式锁](https://github.com/heibaiying/Full-Stack-Notes/blob/master/notes/Redis_%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81%E5%8E%9F%E7%90%86.md)
+   
 
 ### 总结
 + 实现方式不同：redis实现为去插入一条占位数据，而zk实现为注册一个临时节点
