@@ -1,4 +1,4 @@
-## 分布式锁实现
+## 分布式锁方案
 定义：为什么使用锁？锁的出现是为了解决资源争用问题，在单线程环境下的资源争夺可以使用JDK里的锁实现，
 分布式锁是为了解决分布式环境下的资源争用问题。
 
@@ -150,7 +150,7 @@ try {
 
 ##### 释放锁：  
 通过lua脚本实现原子的比较&删除: 
-```aidl
+```
 if redis.call("get",KEYS[1])==ARGV[1] then
     return redis.call("del",KEYS[1]);
 else
@@ -164,7 +164,7 @@ end
 + 归结原因就是T1执行的指令不是原子性，get和del之间，T2能执行set，所以需要lua来解决
 
 #### Redisson
-```aidl
+```java
 String lockKey = "lockkey1";
 RLock rlock = redisson.getLock(lockKey);
 try {
@@ -190,6 +190,7 @@ return "end";
 1. 采用zookeeper代替
    1. 由于zk集群的特点，是CP，而redis集群是AP
 2. 采用RedLock
+   Redlock 算法的基本思路，**是让客户端和多个独立的 Redis 节点依次请求申请加锁，如果客户端能够和半数以上的节点成功地完成加锁操作，那么我们就认为，客户端成功地获得分布式锁，否则加锁失败**。
 
 参考：
 [探讨redis分布锁的七种方案](https://juejin.cn/post/6936956908007850014)
